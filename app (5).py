@@ -1252,15 +1252,15 @@ def main():
 # STEP 1 CSV UPLOAD
 # ==============================
 
-if not st.session_state.csv_done:
+    if not st.session_state.csv_done:
 
-    st.header("📂 Step 1: Upload Expense CSV")
+        st.header("📂 Step 1: Upload Expense CSV")
 
-    csv_file = st.file_uploader(
-        "Upload CSV File",
-        type=["csv"],
-        key="csv_first"
-    )
+         csv_file = st.file_uploader(
+             "Upload CSV File",
+             type=["csv"],
+             key="csv_first"
+        )
 
 
     if csv_file:
