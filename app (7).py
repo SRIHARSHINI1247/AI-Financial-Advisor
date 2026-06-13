@@ -27,7 +27,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 # GEMINI CONFIGURATION
 # ==========================================
 
-GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+GEMINI_API_KEY = "AIzaSyBrBWeAVgSI_bX0ApPaPshWxWQ1a2v5aPQ"
 
 genai.configure(
     api_key=GEMINI_API_KEY
