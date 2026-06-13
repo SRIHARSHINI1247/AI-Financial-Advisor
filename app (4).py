@@ -228,7 +228,7 @@ def tax_advisor():
         "Annual Income",
         min_value=0,
         value=600000,
-        key="tax_income"
+        key=f"tax_income_{datetime.now().timestamp()}"
         
     )
 
@@ -430,14 +430,15 @@ def savings_goal_tracker():
     goal=st.text_input(
         "Financial Goal",
         placeholder="Example: Emergency Fund",
-        key="goal_name"
+        key=f"financial_goal_{datetime.now().timestamp()}"
     )
 
 
     target=st.number_input(
         "Target Amount",
         min_value=0,
-        value=100000
+        value=100000,
+        key=f"goal_target_{datetime.now().timestamp()}"
         
     )
 
@@ -445,7 +446,8 @@ def savings_goal_tracker():
     saved=st.number_input(
         "Current Savings",
         min_value=0,
-        value=25000
+        value=25000,
+        key=f"current_saved_{datetime.now().timestamp()}"
         
     )
 
