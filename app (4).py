@@ -521,7 +521,8 @@ def dashboard(df):
 
         min_value=1000,
 
-        value=50000
+        value=50000,
+        key="budget_final"
 
         
 
