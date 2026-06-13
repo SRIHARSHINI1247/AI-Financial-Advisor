@@ -1,26 +1,34 @@
+# ==========================================
+# IMPORTS
+# ==========================================
+
 import streamlit as st
 import pandas as pd
 import numpy as np
-import pytesseract
+
 from PIL import Image
+import pytesseract
+
 import matplotlib.pyplot as plt
 import re
 import io
 from datetime import datetime
 
 from sklearn.linear_model import LinearRegression
+
 from reportlab.platypus import (
     SimpleDocTemplate,
     Paragraph,
     Spacer
 )
+
 from reportlab.lib.styles import getSampleStyleSheet
 
 
 
-# =====================================
+# ==========================================
 # PAGE CONFIG
-# =====================================
+# ==========================================
 
 st.set_page_config(
     page_title="AI Financial Advisor",
@@ -30,69 +38,100 @@ st.set_page_config(
 
 
 
-# =====================================
-# SESSION STORAGE
-# =====================================
+# ==========================================
+# SESSION INITIALIZATION
+# ==========================================
 
 def init_session():
 
     if "transactions" not in st.session_state:
+
         st.session_state.transactions = []
 
 
+    if "income" not in st.session_state:
 
-# =====================================
-# CATEGORY DETECTION
-# =====================================
+        st.session_state.income = 0
 
-def detect_category(merchant):
+
+
+
+
+# ==========================================
+# CATEGORY PREDICTION
+# ==========================================
+
+def category_predict(merchant):
 
     merchant = str(merchant).lower()
 
 
-    if any(x in merchant for x in [
-        "swiggy",
-        "zomato",
-        "food",
-        "restaurant"
-    ]):
+    if any(
+        x in merchant
+        for x in [
+            "swiggy",
+            "zomato",
+            "food",
+            "restaurant"
+        ]
+    ):
+
         return "Food"
 
 
-    elif any(x in merchant for x in [
-        "uber",
-        "ola",
-        "metro",
-        "bus"
-    ]):
+
+    elif any(
+        x in merchant
+        for x in [
+            "uber",
+            "ola",
+            "metro",
+            "bus"
+        ]
+    ):
+
         return "Transport"
 
 
-    elif any(x in merchant for x in [
-        "netflix",
-        "prime",
-        "movie"
-    ]):
+
+    elif any(
+        x in merchant
+        for x in [
+            "netflix",
+            "prime",
+            "movie"
+        ]
+    ):
+
         return "Entertainment"
 
 
-    elif any(x in merchant for x in [
-        "amazon",
-        "flipkart",
-        "shopping"
-    ]):
+
+    elif any(
+        x in merchant
+        for x in [
+            "amazon",
+            "flipkart",
+            "shopping"
+        ]
+    ):
+
         return "Shopping"
 
 
+
     else:
-        return "Other"
+
+        return "Transfer"
 
 
 
 
-# =====================================
+
+
+# ==========================================
 # CREATE TRANSACTION
-# =====================================
+# ==========================================
 
 def create_transaction(
         merchant,
@@ -100,31 +139,70 @@ def create_transaction(
         date=None
 ):
 
+
     if date is None:
+
         date = datetime.now().strftime(
             "%Y-%m-%d"
         )
 
 
-    return {
 
-        "Date": date,
+    return {
 
         "Merchant": merchant,
 
-        "Amount": float(amount),
+        "Amount": int(amount),
 
-        "Category": detect_category(
+        "Category": category_predict(
             merchant
-        )
+        ),
+
+        "Date": date
+
     }
 
 
 
 
-# =====================================
+
+# ==========================================
+# CSV PROCESSING
+# ==========================================
+
+def process_csv(file):
+
+
+    df = pd.read_csv(file)
+
+
+
+    if "Category" not in df.columns:
+
+        df["Category"] = df["Merchant"].apply(
+            category_predict
+        )
+
+
+
+    if "Date" not in df.columns:
+
+        df["Date"] = datetime.now().strftime(
+            "%Y-%m-%d"
+        )
+
+
+
+    return df
+
+
+
+
+
+
+# ==========================================
 # OCR FUNCTIONS
-# =====================================
+# ==========================================
 
 def extract_text(image):
 
@@ -135,31 +213,33 @@ def extract_text(image):
 
 
 
+
 def extract_amount(text):
 
-    numbers = re.findall(
-        r'\d+',
+
+    matches = re.findall(
+        r'\d{2,6}',
         text
     )
 
 
-    values = []
+    numbers = []
 
 
-    for n in numbers:
+    for x in matches:
 
-        value = int(n)
-
-        if 10 <= value <= 50000:
-
-            values.append(
-                value
-            )
+        value = int(x)
 
 
-    if values:
+        if 10 <= value <= 100000:
 
-        return min(values)
+            numbers.append(value)
+
+
+
+    if numbers:
+
+        return min(numbers)
 
 
     return 0
@@ -167,9 +247,13 @@ def extract_amount(text):
 
 
 
+
+
 def detect_merchant(text):
 
+
     text = text.lower()
+
 
 
     merchants = {
@@ -184,11 +268,10 @@ def detect_merchant(text):
 
         "netflix":"Netflix",
 
-        "amazon":"Amazon",
-
-        "flipkart":"Flipkart"
+        "amazon":"Amazon"
 
     }
+
 
 
     for key,value in merchants.items():
@@ -198,22 +281,30 @@ def detect_merchant(text):
             return value
 
 
+
     return "Unknown"
+
+
 
 
 
 
 def extract_date(text):
 
-    match = re.search(
-        r'\d{2}[-/]\d{2}[-/]\d{4}',
+
+    pattern = r'\d{2}[/-]\d{2}[/-]\d{4}'
+
+
+    result = re.search(
+        pattern,
         text
     )
 
 
-    if match:
+    if result:
 
-        return match.group()
+        return result.group()
+
 
 
     return datetime.now().strftime(
@@ -224,48 +315,32 @@ def extract_date(text):
 
 
 
-# =====================================
-# CSV PROCESSING
-# =====================================
 
-def process_csv(file):
-
-    df = pd.read_csv(
-        file
-    )
-
-
-    if "Category" not in df.columns:
-
-        df["Category"] = df[
-            "Merchant"
-        ].apply(
-            detect_category
-        )
-
-
-    return df
-
-
-
-
-
-# =====================================
+# ==========================================
 # ADD TRANSACTIONS
-# =====================================
+# ==========================================
 
 def add_transactions(df):
 
-    st.session_state.transactions = (
-        df.to_dict(
-            "records"
-        )
-    )
-    # =====================================
-# DASHBOARD ANALYSIS
-# =====================================
 
-def spending_summary(df):
+    records = df.to_dict(
+        "records"
+    )
+
+
+    st.session_state.transactions.extend(
+        records
+    )
+    # ==========================================
+# FINANCIAL DASHBOARD
+# ==========================================
+
+def dashboard(df):
+
+    st.header(
+        "📊 Financial Dashboard"
+    )
+
 
     total = df["Amount"].sum()
 
@@ -274,23 +349,27 @@ def spending_summary(df):
     average = total / count if count > 0 else 0
 
 
+
     col1, col2, col3 = st.columns(3)
+
 
 
     with col1:
 
         st.metric(
             "💰 Total Spending",
-            f"₹{total:.0f}"
+            f"₹{total}"
         )
+
 
 
     with col2:
 
         st.metric(
-            "🧾 Transactions",
+            "📋 Transactions",
             count
         )
+
 
 
     with col3:
@@ -301,16 +380,83 @@ def spending_summary(df):
         )
 
 
-    return total
+
+
+
+    # ==================================
+    # INCOME AND BALANCE
+    # ==================================
+
+
+    st.subheader(
+        "💵 Financial Balance"
+    )
+
+
+    income = st.number_input(
+
+        "Enter Monthly Income",
+
+        min_value=0,
+
+        value=50000,
+
+        key="income_input"
+
+    )
+
+
+    st.session_state.income = income
+
+
+
+    balance = income - total
+
+
+
+    col4, col5 = st.columns(2)
+
+
+
+    with col4:
+
+        st.metric(
+            "Monthly Income",
+            f"₹{income}"
+        )
+
+
+    with col5:
+
+        st.metric(
+            "Available Money",
+            f"₹{balance}"
+        )
+
+
+
+    if balance < 0:
+
+        st.error(
+            "Your expenses are higher than your income!"
+        )
+
+    else:
+
+        st.success(
+            "You are within your income limit."
+        )
 
 
 
 
-# =====================================
-# CATEGORY ANALYSIS
-# =====================================
 
-def category_analysis(df):
+
+
+    # ==================================
+    # CATEGORY ANALYSIS
+    # ==================================
+
 
     st.subheader(
         "📌 Category Spending"
@@ -325,28 +471,48 @@ def category_analysis(df):
 
 
     st.dataframe(
-        category
+        category,
+        use_container_width=True
     )
 
 
-    fig,ax = plt.subplots()
+
+
+
+    # ==================================
+    # PIE CHART
+    # ==================================
+
+
+    fig1, ax1 = plt.subplots()
 
 
     category.plot(
         kind="pie",
         autopct="%1.1f%%",
-        ax=ax
+        ax=ax1
     )
 
 
-    ax.set_ylabel("")
+    ax1.set_ylabel("")
 
 
-    st.pyplot(fig)
+    st.pyplot(
+        fig1
+    )
 
 
 
-    fig2,ax2 = plt.subplots()
+
+
+
+
+    # ==================================
+    # BAR CHART
+    # ==================================
+
+
+    fig2, ax2 = plt.subplots()
 
 
     category.plot(
@@ -355,25 +521,30 @@ def category_analysis(df):
     )
 
 
+    ax2.set_xlabel(
+        "Category"
+    )
+
+
     ax2.set_ylabel(
         "Amount"
     )
 
 
-    st.pyplot(fig2)
-
-
-    return category
-
-
+    st.pyplot(
+        fig2
+    )
 
 
 
-# =====================================
-# SPENDING TREND ANALYSIS
-# =====================================
 
-def spending_trends(df):
+
+
+
+    # ==================================
+    # SPENDING TREND
+    # ==================================
+
 
     st.subheader(
         "📈 Spending Trends"
@@ -388,241 +559,157 @@ def spending_trends(df):
         )
 
 
-        daily = (
+        trend = (
             df.groupby("Date")
             ["Amount"]
             .sum()
         )
 
 
-        fig,ax = plt.subplots()
+        fig3, ax3 = plt.subplots()
 
 
-        daily.plot(
+        trend.plot(
             marker="o",
-            ax=ax
+            ax=ax3
         )
 
 
-        ax.set_ylabel(
-            "Amount"
+        ax3.set_title(
+            "Daily Spending Trend"
         )
 
 
-        st.pyplot(fig)
-
-
-    else:
-
-        st.info(
-            "Date data not available"
+        st.pyplot(
+            fig3
         )
 
 
 
 
 
-# =====================================
-# ANOMALY DETECTION
-# =====================================
 
-def anomaly_detection(df):
+    # ==================================
+    # ANOMALY DETECTION
+    # ==================================
+
 
     st.subheader(
-        "🚨 Unusual Expense Detection"
+        "🚨 Spending Anomaly Detection"
     )
 
 
-    mean = df["Amount"].mean()
+    avg = df["Amount"].mean()
 
 
-    limit = mean * 2
 
-
-    unusual = df[
-        df["Amount"] > limit
+    anomalies = df[
+        df["Amount"] > avg * 2
     ]
 
 
-    if len(unusual)>0:
+
+    if len(anomalies) > 0:
 
 
         st.warning(
-            "High value transactions detected"
+            "Unusual expenses detected:"
         )
 
 
         st.dataframe(
-            unusual
+            anomalies
         )
+
 
 
     else:
 
 
         st.success(
-            "No unusual spending detected"
+            "No unusual spending detected."
         )
 
 
 
 
 
-# =====================================
-# MACHINE LEARNING PREDICTION
-# =====================================
 
-def spending_prediction(df):
+
+    # ==================================
+    # ML PREDICTION
+    # ==================================
+
 
     st.subheader(
         "🤖 Future Spending Prediction"
     )
 
 
-    if len(df) < 3:
+    if len(df) >= 3:
 
-        st.info(
-            "Add more transactions for prediction"
+
+        data = df.copy()
+
+
+
+        data["Index"] = range(
+            len(data)
         )
 
-        return
+
+
+        model = LinearRegression()
 
 
 
-    temp = df.copy()
+        model.fit(
 
+            data[["Index"]],
 
-    temp["Day"] = np.arange(
-        len(temp)
-    )
+            data["Amount"]
 
-
-    X = temp[
-        ["Day"]
-    ]
-
-    y = temp[
-        "Amount"
-    ]
+        )
 
 
 
-    model = LinearRegression()
-
-
-    model.fit(
-        X,
-        y
-    )
-
-
-    future_day = np.array(
-        [[len(temp)+1]]
-    )
-
-
-    prediction = model.predict(
-        future_day
-    )[0]
-
-
-    st.success(
-        f"Predicted next expense: ₹{prediction:.2f}"
-    )
+        future_index = np.array(
+            [[len(data)+1]]
+        )
 
 
 
+        prediction = model.predict(
+            future_index
+        )[0]
 
 
-# =====================================
-# FINANCIAL HEALTH SCORE
-# =====================================
 
-def financial_health(total):
+        st.info(
 
-    st.subheader(
-        "❤️ Financial Health Score"
-    )
+            f"Predicted next expense: ₹{prediction:.0f}"
 
+        )
 
-    if total < 3000:
-
-        score = 90
-
-
-    elif total < 7000:
-
-        score = 70
 
 
     else:
 
-        score = 50
 
+        st.info(
+            "Add more transactions for ML prediction."
+        )
 
-
-    st.progress(
-        score/100
-    )
-
-
-    st.write(
-        f"Health Score: {score}/100"
-    )
-
-
-
-
-
-# =====================================
-# COMPLETE DASHBOARD
-# =====================================
-
-def dashboard(df):
-
-    st.header(
-        "📊 Financial Dashboard"
-    )
-
-
-    total = spending_summary(
-        df
-    )
-
-
-    category_analysis(
-        df
-    )
-
-
-    spending_trends(
-        df
-    )
-
-
-    anomaly_detection(
-        df
-    )
-
-
-    spending_prediction(
-        df
-    )
-
-
-    financial_health(
-        total
-    )
 
 
     return total
-    # =====================================
+    # ==========================================
 # AI FINANCIAL ASSISTANT
-# =====================================
+# ==========================================
 
 def financial_chatbot(df):
 
-    st.subheader(
+    st.header(
         "🤖 AI Financial Assistant"
     )
 
@@ -637,28 +724,41 @@ def financial_chatbot(df):
     )
 
 
-    highest = category.idxmax()
+    income = st.session_state.get(
+        "income",
+        0
+    )
+
+
+    balance = income - total
 
 
 
-    st.info(
-        f"""
-        Your total spending is ₹{total:.0f}.
+    st.write(
+        """
+        Ask questions about your money:
 
-        Highest spending category:
-        {highest}
+        Examples:
 
-        Try monitoring this category
-        to improve savings.
+        • How much money do I have?
+
+        • How much did I spend?
+
+        • Which category is highest?
+
+        • How can I save?
+
+        • What is my budget?
         """
     )
 
 
 
     question = st.text_input(
-        "Ask financial question",
-        key="finance_question"
+        "Ask your question",
+        key="assistant_question"
     )
+
 
 
     if question:
@@ -667,119 +767,151 @@ def financial_chatbot(df):
         q = question.lower()
 
 
-        if "save" in q:
+
+        if (
+            "money" in q
+            or "balance" in q
+            or "have" in q
+        ):
+
+
+            if income > 0:
+
+                st.success(
+                    f"You have approximately ₹{balance} remaining."
+                )
+
+            else:
+
+                st.warning(
+                    "Enter your income in Dashboard first."
+                )
+
+
+
+        elif (
+            "spent" in q
+            or "expense" in q
+            or "total" in q
+        ):
+
+
+            st.info(
+                f"You spent ₹{total} in total."
+            )
+
+
+
+        elif (
+            "highest" in q
+            or "most" in q
+        ):
+
+
+            highest = category.idxmax()
+
+
+            amount = category.max()
+
+
+            st.info(
+                f"Highest spending category is {highest}: ₹{amount}"
+            )
+
+
+
+        elif "food" in q:
+
+
+            if "Food" in category.index:
+
+
+                st.write(
+                    f"Food expenses: ₹{category['Food']}"
+                )
+
+            else:
+
+                st.write(
+                    "No food expenses found."
+                )
+
+
+
+        elif (
+            "save" in q
+            or "saving" in q
+        ):
+
+
+            saving = total * 0.20
+
 
             st.success(
-                "Try following the 50-30-20 rule: "
-                "50% needs, 30% wants, 20% savings."
+                f"Try saving around ₹{saving:.0f} from your spending."
             )
+
 
 
         elif "budget" in q:
 
+
             st.info(
-                "Create a monthly budget limit "
-                "and review expenses weekly."
-            )
+                """
+                Recommended budget rule:
 
+                50% Needs
 
-        elif "invest" in q:
+                30% Wants
 
-            st.success(
-                "Consider diversified investments "
-                "based on your risk level."
+                20% Savings
+                """
             )
 
 
         else:
 
-            st.write(
-                "Track expenses regularly and avoid unnecessary spending."
+
+            st.warning(
+                "I can answer questions related to your expenses, balance, savings and budget."
             )
 
 
 
 
 
-# =====================================
-# SMART FINANCIAL ADVICE
-# =====================================
-
-def financial_advice(df):
-
-    st.subheader(
-        "💡 Smart Financial Advice"
-    )
 
 
-    category = (
-        df.groupby("Category")
-        ["Amount"]
-        .sum()
-    )
-
-
-    highest = category.idxmax()
-
-
-    if highest == "Food":
-
-        st.warning(
-            "Food expenses are high. "
-            "Reduce frequent online orders."
-        )
-
-
-    elif highest == "Shopping":
-
-        st.warning(
-            "Shopping expenses are high. "
-            "Avoid unnecessary purchases."
-        )
-
-
-    elif highest == "Entertainment":
-
-        st.warning(
-            "Review your subscriptions."
-        )
-
-
-    else:
-
-        st.success(
-            "Your spending pattern looks balanced."
-        )
-
-
-
-
-
-# =====================================
+# ==========================================
 # INVESTMENT ADVISOR
-# =====================================
+# ==========================================
 
 def investment_advisor():
 
-    st.subheader(
+    st.header(
         "📈 Investment Suggestions"
     )
 
 
     st.write(
         """
-        Based on general financial principles:
+        Based on general financial planning:
 
-        • Emergency fund: Save 3-6 months expenses
+        🟢 Low Risk:
+        - Fixed Deposits
+        - Government Bonds
 
-        • Low risk:
-          Fixed deposits, bonds
 
-        • Medium risk:
-          Mutual funds
+        🟡 Medium Risk:
+        - Mutual Funds
+        - Index Funds
 
-        • Long term:
-          Index funds and diversified investments
+
+        🔴 Long Term:
+        - Diversified Equity Investments
+
+
+        Always consider your risk level before investing.
         """
     )
 
@@ -787,23 +919,32 @@ def investment_advisor():
 
 
 
-# =====================================
+
+
+# ==========================================
 # TAX SAVING ADVISOR
-# =====================================
+# ==========================================
 
 def tax_saving_advisor():
 
-    st.subheader(
+
+    st.header(
         "📑 Tax Saving Suggestions"
     )
 
 
     income = st.number_input(
+
         "Annual Income",
+
         min_value=0,
+
         value=600000,
-        key="annual_income_input"
+
+        key="tax_income_input"
+
     )
+
 
 
     if income > 0:
@@ -830,11 +971,14 @@ def tax_saving_advisor():
 
 
 
-# =====================================
-# PDF REPORT GENERATOR
-# =====================================
+
+
+# ==========================================
+# PDF REPORT CREATION
+# ==========================================
 
 def create_pdf(df):
+
 
     buffer = io.BytesIO()
 
@@ -850,33 +994,46 @@ def create_pdf(df):
     content = []
 
 
+
     total = df["Amount"].sum()
 
 
+
     content.append(
+
         Paragraph(
+
             "AI Financial Advisor Report",
+
             styles["Heading1"]
+
+        )
+
+    )
+
+
+
+    content.append(
+        Spacer(
+            1,
+            20
         )
     )
 
 
-    content.append(
-        Spacer(1,20)
-    )
-
 
     content.append(
+
         Paragraph(
+
             f"Total Spending: Rs {total}",
+
             styles["Normal"]
+
         )
+
     )
 
-
-    content.append(
-        Spacer(1,10)
-    )
 
 
     category = (
@@ -886,14 +1043,22 @@ def create_pdf(df):
     )
 
 
+
     for name,value in category.items():
 
+
         content.append(
+
             Paragraph(
+
                 f"{name}: Rs {value}",
+
                 styles["Normal"]
+
             )
+
         )
+
 
 
     pdf.build(
@@ -901,7 +1066,9 @@ def create_pdf(df):
     )
 
 
+
     buffer.seek(0)
+
 
 
     return buffer
@@ -910,14 +1077,16 @@ def create_pdf(df):
 
 
 
-# =====================================
+
+# ==========================================
 # REPORT SECTION
-# =====================================
+# ==========================================
 
 def report_section(df):
 
-    st.subheader(
-        "📄 Download Report"
+
+    st.header(
+        "📄 Financial Report"
     )
 
 
@@ -927,50 +1096,39 @@ def report_section(df):
 
 
     st.download_button(
-        label="⬇ Download Financial Report",
-        data=pdf,
-        file_name="financial_report.pdf",
+
+        "⬇ Download PDF Report",
+
+        pdf,
+
+        file_name="AI_Financial_Report.pdf",
+
         mime="application/pdf",
-        key="financial_report_download"
+
+        key="pdf_report_download"
+
     )
-    # =====================================
+    # ==========================================
 # MAIN APPLICATION
-# =====================================
+# ==========================================
 
 def main():
-
 
     init_session()
 
 
-
-    # ===============================
+    # ==============================
     # SIDEBAR
-    # ===============================
+    # ==============================
 
     st.sidebar.title(
         "💰 AI Financial Advisor"
     )
 
 
-    st.sidebar.write(
-        """
-        Week 7-8 Features
-
-        ✅ OCR Receipt Scanner
-
-        ✅ ML Prediction
-
-        ✅ Spending Trends
-
-        ✅ Anomaly Detection
-
-        ✅ AI Assistant
-
-        ✅ PDF Reports
-        """
+    st.sidebar.info(
+        "AI powered expense tracking and financial analysis"
     )
-
 
 
     page = st.sidebar.radio(
@@ -978,24 +1136,81 @@ def main():
         "Navigation",
 
         [
-            "📂 Upload CSV",
-            "📷 Upload Receipt",
+
             "🏠 Dashboard",
+
+            "📂 Upload CSV",
+
+            "📷 Upload Receipt",
+
             "🤖 AI Assistant",
+
             "📄 Reports"
+
         ],
 
-        index=0
+        index=0,
+
+        key="navigation_menu"
 
     )
 
 
 
-    # ===============================
-    # CSV UPLOAD
-    # ===============================
 
-    if page == "📂 Upload CSV":
+
+    # ==============================
+    # DASHBOARD FIRST PAGE
+    # ==============================
+
+    if page == "🏠 Dashboard":
+
+
+        if len(st.session_state.transactions) > 0:
+
+
+            df = pd.DataFrame(
+
+                st.session_state.transactions
+
+            )
+
+
+            dashboard(df)
+
+
+            st.divider()
+
+
+            financial_advice(df)
+
+
+
+        else:
+
+
+            st.header(
+                "💰 AI Financial Advisor"
+            )
+
+
+            st.write(
+                """
+                Welcome!
+
+                Upload your expenses using CSV
+                or scan payment screenshots
+                to start your financial analysis.
+                """
+            )
+
+
+
+    # ==============================
+    # CSV UPLOAD
+    # ==============================
+
+    elif page == "📂 Upload CSV":
 
 
         st.header(
@@ -1005,11 +1220,11 @@ def main():
 
         csv_file = st.file_uploader(
 
-            "Upload CSV File",
+            "Choose CSV file",
 
             type=["csv"],
 
-            key="main_csv_upload"
+            key="csv_upload"
 
         )
 
@@ -1023,8 +1238,10 @@ def main():
             )
 
 
-            add_transactions(
-                df
+            st.session_state.transactions = (
+
+                df.to_dict("records")
+
             )
 
 
@@ -1049,28 +1266,30 @@ def main():
 
 
             st.info(
-                "Go to Dashboard from sidebar to view analysis."
+                "Open Dashboard from sidebar to view analysis."
             )
 
 
 
 
 
-    # ===============================
-    # OCR RECEIPT
-    # ===============================
+
+
+    # ==============================
+    # OCR RECEIPT UPLOAD
+    # ==============================
 
     elif page == "📷 Upload Receipt":
 
 
         st.header(
-            "📷 OCR Receipt Scanner"
+            "📷 Payment Screenshot Scanner"
         )
 
 
         images = st.file_uploader(
 
-            "Upload Payment Screenshot",
+            "Upload screenshots",
 
             type=[
                 "png",
@@ -1080,7 +1299,7 @@ def main():
 
             accept_multiple_files=True,
 
-            key="main_receipt_upload"
+            key="receipt_upload"
 
         )
 
@@ -1089,17 +1308,22 @@ def main():
         if images:
 
 
-            for img in images:
+            for file in images:
 
 
                 image = Image.open(
-                    img
+                    file
                 )
 
 
                 st.image(
+
                     image,
-                    caption=img.name
+
+                    caption=file.name,
+
+                    width=300
+
                 )
 
 
@@ -1107,17 +1331,6 @@ def main():
                 text = extract_text(
                     image
                 )
-
-
-                st.subheader(
-                    "Extracted Text"
-                )
-
-
-                st.write(
-                    text
-                )
-
 
 
                 amount = extract_amount(
@@ -1158,7 +1371,7 @@ def main():
 
                 st.success(
 
-                    f"Added {merchant} ₹{amount}"
+                    f"Added: {merchant} ₹{amount}"
 
                 )
 
@@ -1167,70 +1380,15 @@ def main():
 
 
 
-    # ===============================
-    # DASHBOARD
-    # ===============================
 
-    elif page == "🏠 Dashboard":
-
-
-        st.header(
-            "📊 Financial Dashboard"
-        )
-
-
-        if len(
-            st.session_state.transactions
-        ) > 0:
-
-
-
-            df = pd.DataFrame(
-
-                st.session_state.transactions
-
-            )
-
-
-            total = dashboard(
-                df
-            )
-
-
-            financial_advice(
-                df
-            )
-
-
-        else:
-
-
-            st.warning(
-                "Upload CSV or receipt first."
-            )
-
-
-
-
-
-
-    # ===============================
+    # ==============================
     # AI ASSISTANT
-    # ===============================
+    # ==============================
 
     elif page == "🤖 AI Assistant":
 
 
-        st.header(
-            "🤖 AI Money Assistant"
-        )
-
-
-
-        if len(
-            st.session_state.transactions
-        ) > 0:
-
+        if len(st.session_state.transactions) > 0:
 
 
             df = pd.DataFrame(
@@ -1240,16 +1398,15 @@ def main():
             )
 
 
-            financial_chatbot(
-                df
-            )
+            financial_chatbot(df)
+
 
 
         else:
 
 
             st.warning(
-                "No expenses available."
+                "Upload expenses first."
             )
 
 
@@ -1258,34 +1415,21 @@ def main():
 
 
 
-    # ===============================
+    # ==============================
     # REPORTS
-    # ===============================
+    # ==============================
 
     elif page == "📄 Reports":
 
 
-        st.header(
-            "📄 Financial Reports"
-        )
 
-
-
-        if len(
-            st.session_state.transactions
-        ) > 0:
-
+        if len(st.session_state.transactions) > 0:
 
 
             df = pd.DataFrame(
 
                 st.session_state.transactions
 
-            )
-
-
-            financial_advice(
-                df
             )
 
 
@@ -1295,25 +1439,26 @@ def main():
             tax_saving_advisor()
 
 
-            report_section(
-                df
-            )
+            report_section(df)
+
 
 
         else:
 
 
             st.warning(
-                "Upload expenses to generate reports."
+                "No transactions available."
             )
 
 
 
 
 
-# =====================================
-# RUN
-# =====================================
+
+
+# ==========================================
+# RUN APP
+# ==========================================
 
 if __name__ == "__main__":
 
