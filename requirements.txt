@@ -1,5 +1,8 @@
 streamlit
-pytesseract
-pillow
 pandas
+numpy
 matplotlib
+pillow
+pytesseract
+scikit-learn
+reportlab
