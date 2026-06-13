@@ -227,8 +227,8 @@ def tax_advisor():
     income=st.number_input(
         "Annual Income",
         min_value=0,
-        value=600000,
-        key="income_input"
+        value=600000
+        
     )
 
 
@@ -435,16 +435,16 @@ def savings_goal_tracker():
     target=st.number_input(
         "Target Amount",
         min_value=0,
-        value=100000,
-        key="goal_target"
+        value=100000
+        
     )
 
 
     saved=st.number_input(
         "Current Savings",
         min_value=0,
-        value=25000,
-        key="current_saved"
+        value=25000
+        
     )
 
 
@@ -521,9 +521,9 @@ def dashboard(df):
 
         min_value=1000,
 
-        value=50000,
+        value=50000
 
-        key="main_budget"
+        
 
     )
 
@@ -663,9 +663,9 @@ def main():
 
         "Amount",
 
-        min_value=0,
+        min_value=0
 
-        key="manual_amount"
+        
 
     )
 
