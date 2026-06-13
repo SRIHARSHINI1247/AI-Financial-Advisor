@@ -626,7 +626,8 @@ def dashboard(df):
 
         df.to_csv(index=False),
 
-        file_name="financial_report.csv"
+        file_name="financial_report.csv",
+        key=f"download_report_{len(df)}_{int(df['Amount'].sum())}"
 
     )
 
