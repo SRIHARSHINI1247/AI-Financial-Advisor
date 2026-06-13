@@ -88,7 +88,7 @@ def detect_amount(text):
 
         if numbers:
 
-            amount = min(numbers)
+            amount = max(numbers)
 
 
     return amount
@@ -495,7 +495,8 @@ def show_dashboard(df):
 
         min_value=1000,
 
-        value=50000
+        value=50000,
+        key="monthly_budget_input"
 
     )
 
