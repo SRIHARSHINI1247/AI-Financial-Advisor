@@ -1172,6 +1172,27 @@ def report_section(df):
 def main():
 
     # ==============================
+    # PAGE CONFIG + TITLE
+    # ==============================
+
+    st.set_page_config(
+        page_title="AI Financial Advisor",
+        page_icon="💰",
+        layout="wide"
+    )
+
+
+    st.title(
+        "💰 AI Financial Advisor & Expense Manager"
+    )
+
+    st.write(
+        "AI powered personal finance assistant with prediction and smart insights"
+    )
+
+
+
+    # ==============================
     # SESSION STORAGE
     # ==============================
 
@@ -1180,43 +1201,47 @@ def main():
         st.session_state.transactions = []
 
 
+
     # ==============================
     # SIDEBAR
     # ==============================
 
     st.sidebar.title(
-        "💰 AI Financial Advisor"
+        "💰 Navigation"
     )
 
 
     st.sidebar.info(
         """
-        Week 7-8 Features
+        Week 7-8 Features:
 
         ✔ OCR Receipt Scanner
         ✔ ML Expense Prediction
+        ✔ Spending Trend Analysis
+        ✔ Anomaly Detection
         ✔ AI Financial Assistant
-        ✔ Smart Expense Alerts
+        ✔ Smart Alerts
         ✔ PDF Reports
         """
     )
 
 
     page = st.sidebar.radio(
-        "Navigation",
+        "Select Page",
         [
             "📂 Upload CSV",
             "📷 Upload Receipt",
             "🏠 Dashboard",
             "🤖 AI Assistant",
             "📄 Reports"
-        ]
+        ],
+        index=0
     )
 
 
 
     # ==============================
-    # CREATE DATAFRAME
+    # CURRENT DATA
     # ==============================
 
     if len(st.session_state.transactions) > 0:
@@ -1239,13 +1264,13 @@ def main():
 
 
     # ==============================
-    # CSV UPLOAD PAGE
+    # CSV UPLOAD
     # ==============================
 
     if page == "📂 Upload CSV":
 
 
-        st.title(
+        st.header(
             "📂 Upload Expense CSV"
         )
 
@@ -1253,27 +1278,27 @@ def main():
         csv_file = st.file_uploader(
             "Upload CSV File",
             type=["csv"],
-            key="csv_upload_page"
+            key="csv_upload"
         )
 
 
         if csv_file:
 
 
-            df = pd.read_csv(
+            data = pd.read_csv(
                 csv_file
             )
 
 
-            if "Category" not in df.columns:
+            if "Category" not in data.columns:
 
-                df["Category"] = df["Merchant"].apply(
+                data["Category"] = data["Merchant"].apply(
                     category_predict
                 )
 
 
             st.session_state.transactions = (
-                df.to_dict("records")
+                data.to_dict("records")
             )
 
 
@@ -1283,20 +1308,20 @@ def main():
 
 
             st.dataframe(
-                df,
+                data,
                 use_container_width=True
             )
 
 
 
     # ==============================
-    # RECEIPT UPLOAD PAGE
+    # RECEIPT UPLOAD
     # ==============================
 
     elif page == "📷 Upload Receipt":
 
 
-        st.title(
+        st.header(
             "📷 Upload Payment Screenshot"
         )
 
@@ -1309,24 +1334,24 @@ def main():
                 "jpeg"
             ],
             accept_multiple_files=True,
-            key="receipt_upload_page"
+            key="receipt_upload"
         )
 
 
         if images:
 
 
-            for file in images:
+            for img in images:
 
 
                 image = Image.open(
-                    file
+                    img
                 )
 
 
                 st.image(
                     image,
-                    caption=file.name
+                    caption=img.name
                 )
 
 
@@ -1350,32 +1375,42 @@ def main():
                 )
 
 
-                transaction = create_transaction(
-                    merchant,
-                    amount,
-                    date
-                )
+                if amount is not None:
 
 
-                st.session_state.transactions.append(
-                    transaction
-                )
+                    transaction = create_transaction(
+                        merchant,
+                        amount,
+                        date
+                    )
 
 
-                st.success(
-                    f"Added {merchant} ₹{amount}"
-                )
+                    st.session_state.transactions.append(
+                        transaction
+                    )
+
+
+                    st.success(
+                        f"{merchant} - ₹{amount} added"
+                    )
+
+
+                else:
+
+                    st.warning(
+                        "Could not detect amount"
+                    )
 
 
 
     # ==============================
-    # DASHBOARD PAGE
+    # DASHBOARD
     # ==============================
 
     elif page == "🏠 Dashboard":
 
 
-        st.title(
+        st.header(
             "📊 Financial Dashboard"
         )
 
@@ -1388,49 +1423,57 @@ def main():
             )
 
 
+            financial_health(
+                total
+            )
+
+
         else:
 
 
-            st.warning(
-                "Upload CSV or receipt first."
+            st.info(
+                "Upload CSV or receipt to generate dashboard"
             )
 
 
 
     # ==============================
-    # AI CHAT PAGE
+    # AI ASSISTANT
     # ==============================
 
     elif page == "🤖 AI Assistant":
 
 
-        st.title(
+        st.header(
             "🤖 AI Financial Assistant"
         )
 
 
         if len(df) > 0:
 
+
             financial_chatbot(
                 df
             )
 
+
         else:
 
+
             st.warning(
-                "Add expenses first."
+                "Add expenses first"
             )
 
 
 
     # ==============================
-    # REPORT PAGE
+    # REPORTS
     # ==============================
 
     elif page == "📄 Reports":
 
 
-        st.title(
+        st.header(
             "📄 Financial Reports"
         )
 
@@ -1461,5 +1504,15 @@ def main():
 
 
             st.warning(
-                "No expense data available."
+                "No expense data available"
             )
+
+
+
+# ==============================
+# RUN APP
+# ==============================
+
+if __name__ == "__main__":
+
+    main()
