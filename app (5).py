@@ -1171,21 +1171,53 @@ def report_section(df):
 
 def main():
 
-    st.sidebar.title("💰 AI Financial Advisor")
+    # ==============================
+    # SESSION STORAGE
+    # ==============================
+
+    if "transactions" not in st.session_state:
+
+        st.session_state.transactions = []
+
+
+    # ==============================
+    # SIDEBAR
+    # ==============================
+
+    st.sidebar.title(
+        "💰 AI Financial Advisor"
+    )
+
+
+    st.sidebar.info(
+        """
+        Week 7-8 Features
+
+        ✔ OCR Receipt Scanner
+        ✔ ML Expense Prediction
+        ✔ AI Financial Assistant
+        ✔ Smart Expense Alerts
+        ✔ PDF Reports
+        """
+    )
+
 
     page = st.sidebar.radio(
-        "Go To",
+        "Navigation",
         [
-            "🏠 Dashboard",
-            "📷 Upload Receipt",
             "📂 Upload CSV",
+            "📷 Upload Receipt",
+            "🏠 Dashboard",
             "🤖 AI Assistant",
             "📄 Reports"
         ]
     )
 
 
-    # Create dataframe
+
+    # ==============================
+    # CREATE DATAFRAME
+    # ==============================
 
     if len(st.session_state.transactions) > 0:
 
@@ -1205,35 +1237,12 @@ def main():
         )
 
 
-    # ==========================
-    # DASHBOARD PAGE
-    # ==========================
 
-    if page == "🏠 Dashboard":
+    # ==============================
+    # CSV UPLOAD PAGE
+    # ==============================
 
-
-        st.title(
-            "📊 Financial Dashboard"
-        )
-
-
-        if len(df)>0:
-
-            advanced_dashboard(df)
-
-        else:
-
-            st.info(
-                "Upload expenses to view dashboard"
-            )
-
-
-
-    # ==========================
-    # CSV PAGE
-    # ==========================
-
-    elif page == "📂 Upload CSV":
+    if page == "📂 Upload CSV":
 
 
         st.title(
@@ -1242,8 +1251,9 @@ def main():
 
 
         csv_file = st.file_uploader(
-            "Choose CSV",
-            type="csv"
+            "Upload CSV File",
+            type=["csv"],
+            key="csv_upload_page"
         )
 
 
@@ -1255,63 +1265,95 @@ def main():
             )
 
 
+            if "Category" not in df.columns:
+
+                df["Category"] = df["Merchant"].apply(
+                    category_predict
+                )
+
+
             st.session_state.transactions = (
                 df.to_dict("records")
             )
 
 
             st.success(
-                "CSV Added Successfully"
+                "CSV uploaded successfully!"
+            )
+
+
+            st.dataframe(
+                df,
+                use_container_width=True
             )
 
 
 
-    # ==========================
-    # RECEIPT PAGE
-    # ==========================
-
+    # ==============================
+    # RECEIPT UPLOAD PAGE
+    # ==============================
 
     elif page == "📷 Upload Receipt":
 
 
         st.title(
-            "📷 Scan Payment Screenshot"
+            "📷 Upload Payment Screenshot"
         )
 
 
         images = st.file_uploader(
-            "Upload Receipt",
+            "Upload Receipt Images",
             type=[
                 "png",
                 "jpg",
                 "jpeg"
             ],
-            accept_multiple_files=True
+            accept_multiple_files=True,
+            key="receipt_upload_page"
         )
 
 
         if images:
 
 
-            for img in images:
+            for file in images:
 
 
-                image = Image.open(img)
-
-                st.image(image)
-
-
-                text = extract_text(image)
+                image = Image.open(
+                    file
+                )
 
 
-                amount = extract_amount(text)
+                st.image(
+                    image,
+                    caption=file.name
+                )
 
-                merchant = detect_merchant(text)
+
+                text = extract_text(
+                    image
+                )
+
+
+                amount = extract_amount(
+                    text
+                )
+
+
+                merchant = detect_merchant(
+                    text
+                )
+
+
+                date = extract_date(
+                    text
+                )
 
 
                 transaction = create_transaction(
                     merchant,
-                    amount
+                    amount,
+                    date
                 )
 
 
@@ -1320,16 +1362,44 @@ def main():
                 )
 
 
-            st.success(
-                "Receipt Added"
+                st.success(
+                    f"Added {merchant} ₹{amount}"
+                )
+
+
+
+    # ==============================
+    # DASHBOARD PAGE
+    # ==============================
+
+    elif page == "🏠 Dashboard":
+
+
+        st.title(
+            "📊 Financial Dashboard"
+        )
+
+
+        if len(df) > 0:
+
+
+            category,total = advanced_dashboard(
+                df
+            )
+
+
+        else:
+
+
+            st.warning(
+                "Upload CSV or receipt first."
             )
 
 
 
-    # ==========================
-    # AI ASSISTANT
-    # ==========================
-
+    # ==============================
+    # AI CHAT PAGE
+    # ==============================
 
     elif page == "🤖 AI Assistant":
 
@@ -1339,22 +1409,23 @@ def main():
         )
 
 
-        if len(df)>0:
+        if len(df) > 0:
 
-            financial_chatbot(df)
+            financial_chatbot(
+                df
+            )
 
         else:
 
             st.warning(
-                "Add expenses first"
+                "Add expenses first."
             )
 
 
 
-    # ==========================
+    # ==============================
     # REPORT PAGE
-    # ==========================
-
+    # ==============================
 
     elif page == "📄 Reports":
 
@@ -1364,11 +1435,14 @@ def main():
         )
 
 
-        if len(df)>0:
+        if len(df) > 0:
+
+
+            total = df["Amount"].sum()
 
 
             financial_health(
-                df["Amount"].sum()
+                total
             )
 
 
@@ -1378,11 +1452,14 @@ def main():
             tax_saving_advisor()
 
 
-            report_section(df)
+            report_section(
+                df
+            )
 
 
         else:
 
-            st.info(
-                "No data available"
+
+            st.warning(
+                "No expense data available."
             )
