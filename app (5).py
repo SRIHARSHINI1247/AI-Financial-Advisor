@@ -1244,137 +1244,94 @@ def main():
         st.success(
             "Expense Added"
         )
+        if "csv_done" not in st.session_state:
+    st.session_state.csv_done = False
 
 
+# ==============================
+# STEP 1 CSV UPLOAD
+# ==============================
 
+if not st.session_state.csv_done:
 
+    st.header("📂 Step 1: Upload Expense CSV")
 
-    # ==============================
-    # CSV UPLOAD
-    # ==============================
-
-
-    st.header(
-        "📂 Upload Expense CSV"
-    )
-
-
-    csv_file=st.file_uploader(
-
+    csv_file = st.file_uploader(
         "Upload CSV File",
-
         type=["csv"],
-
-        key="csv_upload"
-
+        key="csv_first"
     )
-
 
 
     if csv_file:
 
-
-        df=pd.read_csv(
-            csv_file
-        )
+        df = pd.read_csv(csv_file)
 
 
         if "Category" not in df.columns:
 
-
-            df["Category"]=df["Merchant"].apply(
+            df["Category"] = df["Merchant"].apply(
                 category_predict
             )
 
 
-        st.session_state.transactions = (
-
-            df.to_dict(
-                "records"
-            )
-
+        st.session_state.transactions = df.to_dict(
+            "records"
         )
 
 
+        st.session_state.csv_done = True
+
+
+        st.success(
+            "CSV uploaded successfully!"
+        )
+
+
+        st.rerun()
 
 
 
-    # ==============================
-    # IMAGE UPLOAD
-    # ==============================
+# ==============================
+# STEP 2 SCREENSHOT UPLOAD
+# ==============================
 
 
-    st.header(
-        "📷 Upload Payment Screenshot"
-    )
+else:
+
+    st.header("📷 Step 2: Upload Payment Screenshot")
 
 
-    images=st.file_uploader(
-
+    images = st.file_uploader(
         "Upload Receipt Images",
-
-        type=[
-            "png",
-            "jpg",
-            "jpeg"
-        ],
-
+        type=["png","jpg","jpeg"],
         accept_multiple_files=True,
-
-        key="receipt_upload"
-
+        key="image_second"
     )
-
 
 
     if images:
 
-
         for image_file in images:
 
+            image = Image.open(image_file)
 
-            image=Image.open(
-                image_file
-            )
-
-
-            st.image(
-                image,
-                caption=image_file.name
-            )
+            st.image(image)
 
 
+            text = extract_text(image)
 
-            text=extract_text(
-                image
-            )
+            amount = extract_amount(text)
 
+            merchant = detect_merchant(text)
 
-
-            amount=extract_amount(
-                text
-            )
+            date = extract_date(text)
 
 
-            merchant=detect_merchant(
-                text
-            )
-
-
-            date=extract_date(
-                text
-            )
-
-
-
-            transaction=create_transaction(
-
+            transaction = create_transaction(
                 merchant,
-
                 amount,
-
                 date
-
             )
 
 
@@ -1383,23 +1340,9 @@ def main():
             )
 
 
-
-            st.success(
-
-                f"""
-                Added:
-
-                {merchant}
-
-                ₹{amount}
-
-                """
-
-            )
-
-
-
-
+        st.success(
+            "Screenshot expenses added!"
+        )
 
     # ==============================
     # DISPLAY DASHBOARD
