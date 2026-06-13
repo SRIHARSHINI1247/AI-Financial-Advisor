@@ -1109,6 +1109,88 @@ def report_section(df):
 
     )
     # ==========================================
+# SMART FINANCIAL ADVICE
+# ==========================================
+
+def financial_advice(df):
+
+    st.header(
+        "💡 Smart Financial Advice"
+    )
+
+
+    total = df["Amount"].sum()
+
+
+    category = (
+        df.groupby("Category")
+        ["Amount"]
+        .sum()
+    )
+
+
+    highest = category.idxmax()
+
+
+    highest_amount = category.max()
+
+
+
+    st.info(
+        f"""
+        Total spending: ₹{total}
+
+        Highest spending category:
+        {highest}
+
+        Amount:
+        ₹{highest_amount}
+        """
+    )
+
+
+
+    if highest == "Food":
+
+        st.warning(
+            "Food expenses are high. Try reducing online food orders."
+        )
+
+
+    elif highest == "Shopping":
+
+        st.warning(
+            "Shopping expenses are high. Review unnecessary purchases."
+        )
+
+
+    elif highest == "Entertainment":
+
+        st.warning(
+            "Entertainment expenses are high. Check subscriptions."
+        )
+
+
+    else:
+
+        st.success(
+            "Your spending pattern looks balanced."
+        )
+
+
+
+    if total > st.session_state.get("income", 0):
+
+        st.error(
+            "Your expenses are higher than your income."
+        )
+
+    else:
+
+        st.success(
+            "Your expenses are within your income."
+        )
+    # ==========================================
 # MAIN APPLICATION
 # ==========================================
 
