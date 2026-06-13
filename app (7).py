@@ -1282,7 +1282,7 @@ def main():
 
                     caption=file.name,
 
-                    width=300
+                    width=500
 
                 )
 
