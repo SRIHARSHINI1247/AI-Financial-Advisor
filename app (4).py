@@ -1,51 +1,33 @@
 import streamlit as st
-import pytesseract
-from PIL import Image
 import pandas as pd
 import matplotlib.pyplot as plt
+import pytesseract
+from PIL import Image
 import re
 from datetime import datetime
 
 
-# ================= APP CONFIG =================
+# ==========================
+# APP CONFIG
+# ==========================
 
-def setup_app():
-
-    st.set_page_config(
-        page_title="AI Financial Advisor",
-        page_icon="💰",
-        layout="wide"
-    )
-
-    st.title("💰 AI Financial Advisor & Expense Manager")
-    st.write(
-        "AI-powered expense tracking, Indian financial planning and personalized advice."
-    )
+st.set_page_config(
+    page_title="AI Financial Advisor",
+    page_icon="💰",
+    layout="wide"
+)
 
 
-
-# ================= FILE UPLOAD =================
-
-def upload_images():
-
-    return st.file_uploader(
-        "Upload Payment Screenshots",
-        type=["png","jpg","jpeg"],
-        accept_multiple_files=True
-    )
+st.title("💰 AI Financial Advisor & Expense Manager")
+st.write(
+    "AI-powered expense tracking and Indian personal finance assistant"
+)
 
 
 
-def upload_csv():
-
-    return st.file_uploader(
-        "Upload UPI / Expense CSV",
-        type=["csv"]
-    )
-
-
-
-# ================= OCR EXTRACTION =================
+# ==========================
+# OCR FUNCTIONS
+# ==========================
 
 def extract_text(image):
 
@@ -55,48 +37,30 @@ def extract_text(image):
 
 def detect_amount(text):
 
-    amount = None
-
-
-    match = re.search(
-        r'₹\s?([\d,]+)',
-        text
+    matches = re.findall(
+        r'\d+',
+        text.replace(",","")
     )
 
-    if match:
+    amounts=[]
 
-        amount = match.group(1)
+    for x in matches:
 
-        amount = int(
-            amount.replace(",","")
-        )
+        value=int(x)
 
+        if 10 <= value <= 100000:
 
-    if amount is None:
-
-        numbers = re.findall(
-            r'\d{2,6}',
-            text
-        )
-
-        numbers = [
-            int(x)
-            for x in numbers
-            if 10 <= int(x) <= 100000
-        ]
+            amounts.append(value)
 
 
-        if numbers:
+    if amounts:
 
-            amount = max(numbers)
-
-
-    return amount
+        return max(amounts)
 
 
+    return 0
 
 
-# ================= MERCHANT DETECTION =================
 
 
 def detect_merchant(text):
@@ -104,7 +68,7 @@ def detect_merchant(text):
     text=text.lower()
 
 
-    merchant_keywords={
+    merchants={
 
         "swiggy":"Swiggy",
         "zomato":"Zomato",
@@ -116,18 +80,16 @@ def detect_merchant(text):
         "prime":"Prime Video",
         "blinkit":"Blinkit",
         "zepto":"Zepto",
-        "apollo":"Healthcare",
-        "medplus":"Healthcare"
+        "apollo":"Apollo Pharmacy"
 
     }
 
 
-    for key,value in merchant_keywords.items():
+    for key,value in merchants.items():
 
         if key in text:
 
             return value
-
 
 
     return "Unknown"
@@ -135,7 +97,10 @@ def detect_merchant(text):
 
 
 
-# ================= CATEGORY SYSTEM =================
+
+# ==========================
+# CATEGORY SYSTEM
+# ==========================
 
 
 def detect_category(merchant):
@@ -153,14 +118,12 @@ def detect_category(merchant):
         return "Food"
 
 
-
     elif merchant in [
         "uber",
         "ola"
     ]:
 
         return "Transport"
-
 
 
     elif merchant in [
@@ -171,7 +134,6 @@ def detect_category(merchant):
         return "Shopping"
 
 
-
     elif merchant in [
         "netflix",
         "prime video"
@@ -180,11 +142,9 @@ def detect_category(merchant):
         return "Entertainment"
 
 
-
-    elif merchant=="healthcare":
+    elif "apollo" in merchant:
 
         return "Healthcare"
-
 
 
     else:
@@ -194,120 +154,128 @@ def detect_category(merchant):
 
 
 
-# ================= INDIAN CURRENCY =================
+
+# ==========================
+# CURRENCY FORMAT
+# ==========================
+
+def money(value):
+
+    return f"₹{value:,.0f}"
 
 
-def indian_currency(amount):
-
-    amount=int(amount)
-
-    return "₹{:,.0f}".format(amount)
 
 
 
-
-# ================= INDIAN FINANCE ADVISOR =================
-
-
-def indian_finance_advisor(total,category):
+# ==========================
+# INDIAN FINANCE ADVICE
+# ==========================
 
 
-    st.header("🇮🇳 Indian Personal Finance Advisor")
+def indian_finance_advisor(total):
+
+
+    st.header("🇮🇳 Indian Financial Advisor")
 
 
     st.info(
-        """
-### Investment Recommendations
-
-🏦 PPF:
-Safe long-term savings option with tax benefits.
+"""
+### Investment Suggestions
 
 📈 SIP:
-Invest fixed amounts regularly for long-term wealth creation.
+Invest a fixed amount regularly for long-term wealth creation.
+
+🏦 PPF:
+Safe government-backed long-term savings option.
 
 💹 ELSS:
-Tax-saving mutual fund option with equity exposure.
+Tax-saving mutual fund option.
 
 🛡 Emergency Fund:
-Maintain 3-6 months of expenses as savings.
+Maintain 3-6 months of expenses.
 """
     )
 
 
-    if total>30000:
+    if total > 30000:
 
         st.warning(
-            "Your expenses are high. Try increasing savings and reducing unnecessary spending."
+            "Your spending is high. Try reducing unnecessary expenses and increase savings."
         )
 
     else:
 
         st.success(
-            "Your spending is controlled. Continue saving and investing regularly."
+            "Your spending is under control. Continue saving and investing."
         )
 
 
 
-# ================= TAX SAVING MODULE =================
 
 
-def tax_saving_advisor():
+# ==========================
+# TAX SAVING
+# ==========================
 
-    st.header("📑 Tax Saving Recommendations")
+
+def tax_advisor():
+
+
+    st.header("📑 Tax Saving Suggestions")
 
 
     income=st.number_input(
-        "Enter Annual Income (₹)",
+        "Annual Income",
         min_value=0,
-        value=500000
+        value=600000,
+        key="income_input"
     )
 
 
     if income>500000:
 
-
         st.write(
-            """
+"""
 Possible tax-saving options:
 
-✅ ELSS Mutual Funds  
-✅ PPF Investment  
-✅ National Pension System (NPS)  
-✅ Insurance deductions  
+✅ ELSS Mutual Funds
+
+✅ PPF
+
+✅ NPS
+
+✅ Insurance deductions
+
 """
         )
-
 
     else:
 
         st.success(
-            "Explore basic savings and investment options."
+            "Explore savings and investment options according to your goals."
         )
 
 
 
 
-# ================= UPI ANALYSIS =================
+
+# ==========================
+# UPI ANALYSIS
+# ==========================
 
 
 def upi_analysis(df):
 
 
-    st.header("📱 UPI Transaction Analysis")
-
-
-    total=df["Amount"].sum()
-
-
-    st.write(
-        "Total UPI Spending:",
-        indian_currency(total)
-    )
+    st.header("📱 UPI Spending Analysis")
 
 
     category=df.groupby(
         "Category"
     )["Amount"].sum()
+
+
+    st.write(category)
 
 
     highest=category.idxmax()
@@ -318,160 +286,218 @@ def upi_analysis(df):
     )
 
 
-    st.write(
-        "Recommendation: Reduce spending in your highest category by 10-15%."
+    st.info(
+        "Suggestion: Reduce spending in your highest category by 10-15%."
     )
-    # ================= FINANCIAL HEALTH SCORE =================
+    # ==========================
+# GURU ADVICE
+# ==========================
 
 
-def financial_health_score(total, budget):
+def guru_advice(category):
+
+
+    st.header("📚 Financial Guru Advice")
+
+
+    advice={
+
+        "Food":
+        "Warren Buffett: Avoid unnecessary recurring expenses.",
+
+        "Shopping":
+        "Robert Kiyosaki: Buy assets before liabilities.",
+
+        "Entertainment":
+        "Ramit Sethi: Spend consciously on things you value.",
+
+        "Transport":
+        "Optimize recurring costs to improve savings."
+
+    }
+
+
+    for item in category.index:
+
+        if item in advice:
+
+            st.info(
+                f"{item}: {advice[item]}"
+            )
+
+
+
+
+
+# ==========================
+# FINANCIAL HEALTH SCORE
+# ==========================
+
+
+def health_score(total,budget):
 
 
     st.header("❤️ Financial Health Score")
 
 
-    score = 100
+    score=100
 
 
     if total > budget:
 
-        score -= 30
+        score-=30
 
 
     elif total > budget*0.8:
 
-        score -= 15
+        score-=15
 
 
 
-    if score >= 80:
+    if score>=80:
 
         st.success(
-            f"Financial Health Score: {score}/100 - Excellent"
+            f"Score: {score}/100 - Excellent"
         )
 
 
-    elif score >= 50:
+    elif score>=50:
 
         st.warning(
-            f"Financial Health Score: {score}/100 - Needs Improvement"
+            f"Score: {score}/100 - Average"
         )
 
 
     else:
 
         st.error(
-            f"Financial Health Score: {score}/100 - Poor"
+            f"Score: {score}/100 - Needs Improvement"
         )
 
 
 
 
-# ================= EXPENSE PREDICTION =================
+
+# ==========================
+# EXPENSE PREDICTION
+# ==========================
 
 
 def expense_prediction(df):
 
 
-    st.header("🔮 Future Expense Prediction")
+    st.header("🔮 Expense Prediction")
 
 
-    average = df["Amount"].mean()
+    average=df["Amount"].mean()
 
 
-    predicted = average * len(df)
+    predicted=average*len(df)
 
 
     st.write(
         "Average Transaction:",
-        indian_currency(average)
+        money(average)
     )
 
 
     st.write(
         "Expected Future Spending:",
-        indian_currency(predicted)
+        money(predicted)
     )
 
 
     st.info(
-        "Prediction is based on previous spending patterns."
+        "Prediction is calculated from previous spending behaviour."
     )
 
 
 
 
-# ================= SAVINGS GOAL TRACKER =================
+
+# ==========================
+# SAVINGS GOAL TRACKER
+# ==========================
 
 
 def savings_goal_tracker():
 
 
-    st.header("🎯 Goal Based Savings Tracker")
+    st.header("🎯 Savings Goal Tracker")
 
 
-    goal = st.text_input(
-        "Enter your financial goal"
+    goal=st.text_input(
+        "Financial Goal",
+        placeholder="Example: Emergency Fund"
     )
 
 
-    target = st.number_input(
-        "Target Amount (₹)",
+    target=st.number_input(
+        "Target Amount",
         min_value=0,
-        value=50000
+        value=100000,
+        key="goal_target"
     )
 
 
-    saved = st.number_input(
-        "Current Savings (₹)",
+    saved=st.number_input(
+        "Current Savings",
         min_value=0,
-        value=10000
+        value=25000,
+        key="current_saved"
     )
 
 
     if target>0:
 
 
-        progress = saved/target
+        progress=saved/target
 
 
-        st.progress(
-            min(progress,1.0)
-        )
+        if progress>1:
+
+            progress=1
 
 
-        remaining = target-saved
+
+        st.progress(progress)
+
+
+        remaining=target-saved
 
 
         st.write(
             "Remaining:",
-            indian_currency(remaining)
+            money(remaining)
         )
 
 
         if remaining<=0:
 
             st.success(
-                "Goal achieved!"
+                "Goal Completed 🎉"
             )
-
 
         else:
 
             st.info(
-                f"Save {indian_currency(remaining)} more to reach your goal."
+                "Keep saving to achieve your goal."
             )
 
 
 
 
-# ================= DASHBOARD =================
+
+# ==========================
+# DASHBOARD
+# ==========================
 
 
-def show_dashboard(df):
+def dashboard(df):
 
 
-    st.subheader("📋 Transactions")
+    st.header("📋 Transactions")
+
 
     st.dataframe(df)
 
@@ -481,10 +507,10 @@ def show_dashboard(df):
 
 
 
-    st.header("Total Spending")
+    st.header("💰 Total Spending")
 
     st.write(
-        indian_currency(total)
+        money(total)
     )
 
 
@@ -496,7 +522,8 @@ def show_dashboard(df):
         min_value=1000,
 
         value=50000,
-        key="monthly_budget_input"
+
+        key="main_budget"
 
     )
 
@@ -506,18 +533,18 @@ def show_dashboard(df):
 
 
 
-    st.header("Budget Status")
+    st.header("📊 Budget Tracker")
 
 
     st.write(
         "Budget:",
-        indian_currency(budget)
+        money(budget)
     )
 
 
     st.write(
         "Remaining:",
-        indian_currency(remaining)
+        money(remaining)
     )
 
 
@@ -536,15 +563,19 @@ def show_dashboard(df):
 
 
 
+
+
     category=df.groupby(
         "Category"
     )["Amount"].sum()
 
 
 
-    st.header("Category Analysis")
+    st.header("Category Spending")
+
 
     st.write(category)
+
 
 
 
@@ -564,7 +595,9 @@ def show_dashboard(df):
 
     plt.ylabel("")
 
+
     st.pyplot(fig)
+
 
 
 
@@ -586,17 +619,17 @@ def show_dashboard(df):
 
     st.download_button(
 
-        "⬇ Download Financial Report",
+        "⬇ Download Report",
 
         df.to_csv(index=False),
 
-        "financial_report.csv"
+        file_name="financial_report.csv"
 
     )
 
 
 
-    financial_health_score(
+    health_score(
         total,
         budget
     )
@@ -605,22 +638,17 @@ def show_dashboard(df):
     expense_prediction(df)
 
 
+
     return category,total
-
-
-
-
-# ================= MAIN APPLICATION =================
+    # ==========================
+# MAIN APPLICATION
+# ==========================
 
 
 def main():
 
 
-    setup_app()
-
-
     transactions=[]
-
 
 
     st.header("✍ Manual Expense Entry")
@@ -635,7 +663,9 @@ def main():
 
         "Amount",
 
-        min_value=0
+        min_value=0,
+
+        key="manual_amount"
 
     )
 
@@ -662,15 +692,28 @@ def main():
 
 
         st.success(
-            "Expense Added"
+            "Expense Added Successfully"
         )
 
 
 
 
-    # CSV UPLOAD
 
-    csv_file=upload_csv()
+    # ==========================
+    # CSV UPLOAD
+    # ==========================
+
+
+    st.header("📂 Upload UPI / Expense CSV")
+
+
+    csv_file=st.file_uploader(
+
+        "Upload CSV",
+
+        type=["csv"]
+
+    )
 
 
 
@@ -681,6 +724,8 @@ def main():
 
 
 
+        # Automatically create category
+
         if "Category" not in df.columns:
 
 
@@ -690,20 +735,26 @@ def main():
 
 
 
-        category,total=show_dashboard(df)
+        category,total=dashboard(df)
 
 
 
         indian_finance_advisor(
-            total,
+            total
+        )
+
+
+        guru_advice(
             category
         )
 
 
-        tax_saving_advisor()
+        tax_advisor()
 
 
-        upi_analysis(df)
+        upi_analysis(
+            df
+        )
 
 
         savings_goal_tracker()
@@ -711,26 +762,46 @@ def main():
 
 
 
+
+
+    # ==========================
     # IMAGE UPLOAD
+    # ==========================
 
 
-    images=upload_images()
+    st.header("📷 Upload Payment Screenshot")
+
+
+    images=st.file_uploader(
+
+        "Upload Screenshot",
+
+        type=["png","jpg","jpeg"],
+
+        accept_multiple_files=True,
+
+        key="image_upload"
+
+    )
 
 
 
     if images:
 
 
-        for img_file in images:
+        image_transactions=[]
 
 
-            image=Image.open(img_file)
 
+        for file in images:
+
+
+            image=Image.open(file)
 
 
             st.image(
                 image,
-                caption=img_file.name
+                caption=file.name
             )
 
 
@@ -747,52 +818,60 @@ def main():
 
 
 
-            if amount:
-
-
-                transactions.append({
-
-                    "Date":
-                    datetime.now().strftime("%d-%m-%Y"),
-
-
-                    "Merchant":
-                    merchant,
-
-
-                    "Amount":
-                    amount,
-
-
-                    "Category":
-                    detect_category(merchant)
-
-                })
-
-
-
-        if transactions:
-
-
-            df=pd.DataFrame(
-                transactions
+            category=detect_category(
+                merchant
             )
 
 
-            category,total=show_dashboard(df)
+
+            image_transactions.append({
+
+                "Date":
+                datetime.now().strftime("%d-%m-%Y"),
+
+                "Merchant":
+                merchant,
+
+                "Amount":
+                amount,
+
+                "Category":
+                category
+
+            })
+
+
+
+
+        if image_transactions:
+
+
+            df=pd.DataFrame(
+                image_transactions
+            )
+
+
+
+            category,total=dashboard(df)
 
 
 
             indian_finance_advisor(
-                total,
+                total
+            )
+
+
+            guru_advice(
                 category
             )
 
 
-            tax_saving_advisor()
+            tax_advisor()
 
 
-            upi_analysis(df)
+            upi_analysis(
+                df
+            )
 
 
             savings_goal_tracker()
@@ -800,7 +879,10 @@ def main():
 
 
 
-# ================= RUN =================
+
+# ==========================
+# START APP
+# ==========================
 
 
 if __name__=="__main__":
