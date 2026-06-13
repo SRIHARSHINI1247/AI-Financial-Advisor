@@ -1171,95 +1171,79 @@ def report_section(df):
 
 def main():
 
-    st.sidebar.title(
-        "Navigation"
-    )
+    st.sidebar.title("💰 AI Financial Advisor")
 
-    st.sidebar.info(
-        """
-        AI Financial Advisor
-
-        Week 7-8 Features:
-
-        ✔ OCR Receipt Scanner
-        ✔ ML Prediction
-        ✔ AI Assistant
-        ✔ Smart Alerts
-        ✔ PDF Reports
-        """
+    page = st.sidebar.radio(
+        "Go To",
+        [
+            "🏠 Dashboard",
+            "📷 Upload Receipt",
+            "📂 Upload CSV",
+            "🤖 AI Assistant",
+            "📄 Reports"
+        ]
     )
 
 
-    # ==============================
-    # MANUAL ENTRY
-    # ==============================
+    # Create dataframe
 
-    st.header(
-        "✍ Add Expense Manually"
-    )
+    if len(st.session_state.transactions) > 0:
 
+        df = pd.DataFrame(
+            st.session_state.transactions
+        )
 
-    merchant = st.text_input(
-        "Merchant Name",
-        key="manual_merchant"
-    )
+    else:
 
-
-    amount = st.number_input(
-        "Amount",
-        min_value=0,
-        key="manual_amount"
-    )
-
-
-    if st.button(
-        "Add Expense",
-        key="add_expense_button"
-    ):
-
-        transaction = create_transaction(
-            merchant,
-            amount
+        df = pd.DataFrame(
+            columns=[
+                "Date",
+                "Merchant",
+                "Amount",
+                "Category"
+            ]
         )
 
 
-        st.session_state.transactions.append(
-            transaction
+    # ==========================
+    # DASHBOARD PAGE
+    # ==========================
+
+    if page == "🏠 Dashboard":
+
+
+        st.title(
+            "📊 Financial Dashboard"
         )
 
 
-        st.success(
-            "Expense Added"
-        )
+        if len(df)>0:
+
+            advanced_dashboard(df)
+
+        else:
+
+            st.info(
+                "Upload expenses to view dashboard"
+            )
 
 
 
-    # ==============================
-    # STEP CONTROL
-    # ==============================
+    # ==========================
+    # CSV PAGE
+    # ==========================
 
-    if "csv_done" not in st.session_state:
-
-        st.session_state.csv_done = False
+    elif page == "📂 Upload CSV":
 
 
-
-    # ==============================
-    # STEP 1 CSV UPLOAD
-    # ==============================
-
-    if not st.session_state.csv_done:
-
-
-        st.header(
-            "📂 Step 1: Upload Expense CSV"
+        st.title(
+            "📂 Upload Expense CSV"
         )
 
 
         csv_file = st.file_uploader(
-            "Upload CSV File",
-            type=["csv"],
-            key="csv_first"
+            "Choose CSV",
+            type="csv"
         )
 
 
@@ -1271,95 +1255,63 @@ def main():
             )
 
 
-            if "Category" not in df.columns:
-
-                df["Category"] = df["Merchant"].apply(
-                    category_predict
-                )
-
-
             st.session_state.transactions = (
                 df.to_dict("records")
             )
 
 
-            st.session_state.csv_done = True
-
-
             st.success(
-                "CSV uploaded successfully!"
+                "CSV Added Successfully"
             )
 
 
-            st.rerun()
+
+    # ==========================
+    # RECEIPT PAGE
+    # ==========================
 
 
-
-    # ==============================
-    # STEP 2 SCREENSHOT UPLOAD
-    # ==============================
-
-    else:
+    elif page == "📷 Upload Receipt":
 
 
-        st.header(
-            "📷 Step 2: Upload Payment Screenshot"
+        st.title(
+            "📷 Scan Payment Screenshot"
         )
 
 
         images = st.file_uploader(
-            "Upload Receipt Images",
+            "Upload Receipt",
             type=[
                 "png",
                 "jpg",
                 "jpeg"
             ],
-            accept_multiple_files=True,
-            key="image_second"
+            accept_multiple_files=True
         )
 
 
         if images:
 
 
-            for image_file in images:
+            for img in images:
 
 
-                image = Image.open(
-                    image_file
-                )
+                image = Image.open(img)
+
+                st.image(image)
 
 
-                st.image(
-                    image,
-                    caption=image_file.name
-                )
+                text = extract_text(image)
 
 
-                text = extract_text(
-                    image
-                )
+                amount = extract_amount(text)
 
-
-                amount = extract_amount(
-                    text
-                )
-
-
-                merchant = detect_merchant(
-                    text
-                )
-
-
-                date = extract_date(
-                    text
-                )
+                merchant = detect_merchant(text)
 
 
                 transaction = create_transaction(
                     merchant,
-                    amount,
-                    date
+                    amount
                 )
 
 
@@ -1369,66 +1321,68 @@ def main():
 
 
             st.success(
-                "Screenshot expenses added!"
+                "Receipt Added"
             )
 
 
 
-    # ==============================
-    # DISPLAY DASHBOARD
-    # ==============================
+    # ==========================
+    # AI ASSISTANT
+    # ==========================
 
 
-    if len(
-        st.session_state.transactions
-    ) > 0:
+    elif page == "🤖 AI Assistant":
 
 
-        df = pd.DataFrame(
-            st.session_state.transactions
+        st.title(
+            "🤖 AI Financial Assistant"
         )
 
 
-        category, total = advanced_dashboard(
-            df
+        if len(df)>0:
+
+            financial_chatbot(df)
+
+        else:
+
+            st.warning(
+                "Add expenses first"
+            )
+
+
+
+    # ==========================
+    # REPORT PAGE
+    # ==========================
+
+
+    elif page == "📄 Reports":
+
+
+        st.title(
+            "📄 Financial Reports"
         )
 
 
-        financial_chatbot(
-            df
-        )
+        if len(df)>0:
 
 
-        financial_health(
-            total
-        )
+            financial_health(
+                df["Amount"].sum()
+            )
 
 
-        investment_advisor()
+            investment_advisor()
 
 
-        tax_saving_advisor()
+            tax_saving_advisor()
 
 
-        report_section(
-            df
-        )
+            report_section(df)
 
 
+        else:
 
-    else:
-
-
-        st.info(
-            "Upload transactions to start AI analysis."
-        )
-
-
-
-# ==========================================
-# RUN APPLICATION
-# ==========================================
-
-if __name__ == "__main__":
-
-    main()
+            st.info(
+                "No data available"
+            )
