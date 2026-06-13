@@ -221,7 +221,7 @@ def show_dashboard(df):
     budget = st.number_input(
         "Enter Monthly Budget",
         min_value=1000,
-        value=5000
+        value=5000,
         key=f"budget_{len(df)}"
     )
     
