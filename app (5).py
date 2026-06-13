@@ -1171,11 +1171,9 @@ def report_section(df):
 
 def main():
 
-
     st.sidebar.title(
         "Navigation"
     )
-
 
     st.sidebar.info(
         """
@@ -1192,33 +1190,26 @@ def main():
     )
 
 
-
     # ==============================
     # MANUAL ENTRY
     # ==============================
-
 
     st.header(
         "✍ Add Expense Manually"
     )
 
 
-    merchant=st.text_input(
+    merchant = st.text_input(
         "Merchant Name",
         key="manual_merchant"
     )
 
 
-    amount=st.number_input(
-
+    amount = st.number_input(
         "Amount",
-
         min_value=0,
-
         key="manual_amount"
-
     )
-
 
 
     if st.button(
@@ -1226,13 +1217,9 @@ def main():
         key="add_expense_button"
     ):
 
-
-        transaction=create_transaction(
-
+        transaction = create_transaction(
             merchant,
-
             amount
-
         )
 
 
@@ -1244,105 +1231,148 @@ def main():
         st.success(
             "Expense Added"
         )
-        if "csv_done" not in st.session_state:
-    st.session_state.csv_done = False
 
 
-# ==============================
-# STEP 1 CSV UPLOAD
-# ==============================
+
+    # ==============================
+    # STEP CONTROL
+    # ==============================
+
+    if "csv_done" not in st.session_state:
+
+        st.session_state.csv_done = False
+
+
+
+    # ==============================
+    # STEP 1 CSV UPLOAD
+    # ==============================
 
     if not st.session_state.csv_done:
 
-        st.header("📂 Step 1: Upload Expense CSV")
 
-         csv_file = st.file_uploader(
-             "Upload CSV File",
-             type=["csv"],
-             key="csv_first"
+        st.header(
+            "📂 Step 1: Upload Expense CSV"
         )
 
 
-    if csv_file:
+        csv_file = st.file_uploader(
+            "Upload CSV File",
+            type=["csv"],
+            key="csv_first"
+        )
 
-        df = pd.read_csv(csv_file)
+
+        if csv_file:
 
 
-        if "Category" not in df.columns:
-
-            df["Category"] = df["Merchant"].apply(
-                category_predict
+            df = pd.read_csv(
+                csv_file
             )
 
 
-        st.session_state.transactions = df.to_dict(
-            "records"
-        )
+            if "Category" not in df.columns:
+
+                df["Category"] = df["Merchant"].apply(
+                    category_predict
+                )
 
 
-        st.session_state.csv_done = True
-
-
-        st.success(
-            "CSV uploaded successfully!"
-        )
-
-
-        st.rerun()
-
-
-
-# ==============================
-# STEP 2 SCREENSHOT UPLOAD
-# ==============================
-
-
-else:
-
-    st.header("📷 Step 2: Upload Payment Screenshot")
-
-
-    images = st.file_uploader(
-        "Upload Receipt Images",
-        type=["png","jpg","jpeg"],
-        accept_multiple_files=True,
-        key="image_second"
-    )
-
-
-    if images:
-
-        for image_file in images:
-
-            image = Image.open(image_file)
-
-            st.image(image)
-
-
-            text = extract_text(image)
-
-            amount = extract_amount(text)
-
-            merchant = detect_merchant(text)
-
-            date = extract_date(text)
-
-
-            transaction = create_transaction(
-                merchant,
-                amount,
-                date
+            st.session_state.transactions = (
+                df.to_dict("records")
             )
 
 
-            st.session_state.transactions.append(
-                transaction
+            st.session_state.csv_done = True
+
+
+            st.success(
+                "CSV uploaded successfully!"
             )
 
 
-        st.success(
-            "Screenshot expenses added!"
+            st.rerun()
+
+
+
+    # ==============================
+    # STEP 2 SCREENSHOT UPLOAD
+    # ==============================
+
+    else:
+
+
+        st.header(
+            "📷 Step 2: Upload Payment Screenshot"
         )
+
+
+        images = st.file_uploader(
+            "Upload Receipt Images",
+            type=[
+                "png",
+                "jpg",
+                "jpeg"
+            ],
+            accept_multiple_files=True,
+            key="image_second"
+        )
+
+
+        if images:
+
+
+            for image_file in images:
+
+
+                image = Image.open(
+                    image_file
+                )
+
+
+                st.image(
+                    image,
+                    caption=image_file.name
+                )
+
+
+                text = extract_text(
+                    image
+                )
+
+
+                amount = extract_amount(
+                    text
+                )
+
+
+                merchant = detect_merchant(
+                    text
+                )
+
+
+                date = extract_date(
+                    text
+                )
+
+
+                transaction = create_transaction(
+                    merchant,
+                    amount,
+                    date
+                )
+
+
+                st.session_state.transactions.append(
+                    transaction
+                )
+
+
+            st.success(
+                "Screenshot expenses added!"
+            )
+
+
 
     # ==============================
     # DISPLAY DASHBOARD
@@ -1351,20 +1381,17 @@ else:
 
     if len(
         st.session_state.transactions
-    )>0:
+    ) > 0:
 
 
-
-        df=pd.DataFrame(
+        df = pd.DataFrame(
             st.session_state.transactions
         )
 
 
-
-        category,total=advanced_dashboard(
+        category, total = advanced_dashboard(
             df
         )
-
 
 
         financial_chatbot(
@@ -1372,26 +1399,20 @@ else:
         )
 
 
-
         financial_health(
             total
         )
 
 
-
         investment_advisor()
-
 
 
         tax_saving_advisor()
 
 
-
         report_section(
             df
         )
-
-
 
 
 
@@ -1404,14 +1425,10 @@ else:
 
 
 
-
-
-
 # ==========================================
 # RUN APPLICATION
 # ==========================================
 
-
-if __name__=="__main__":
+if __name__ == "__main__":
 
     main()
