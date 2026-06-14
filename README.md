@@ -59,3 +59,8 @@ An AI-powered expense tracking and financial analysis application built using St
 Built using Python, Streamlit, and Machine Learning for smart personal finance tracking and analysis.
 
 ---
+
+## 🌐 Live Demo
+
+https://ai-financial-advisor-8fmmhfe7dcuwk6ojj3zgbx.streamlit.app/
+
